@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell, LambdaCase  #-}
 
 module Lib
-  ( Tape(..)
+  ( run
   )
 where
 
