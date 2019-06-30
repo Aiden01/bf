@@ -55,7 +55,7 @@ execCommand BFInput  = getInput
 
 
 execLoop :: BFProgram -> BFState ()
-execLoop instrs = getCell >>= \case
+execLoop instrs = use cell >>= \case
   0 -> pure ()
   _ -> execCommandList instrs *> execLoop instrs
 
@@ -69,6 +69,16 @@ execCommandList (x : xs) = execCommand x *> execCommandList xs
 parse :: String -> BFProgram
 parse = mapMaybe char2Command
 
+cell :: Lens' Tape Int
+cell = lens getter setter
+ where
+  getter s =
+    let ptr = s ^. cursor
+        mem = s ^. memory
+    in  mem ^?! ix ptr
+  setter s n =
+    let ptr = s ^. cursor in s & memory %~ (VG.modify $ \v -> write v ptr n)
+
 emptyTape :: Tape
 emptyTape = Tape (VG.replicate 256 0) 0
 
@@ -77,32 +87,22 @@ moveCursor Right' = cursor += 1
 moveCursor Left'  = cursor -= 1
 
 
-getCell :: BFState Int
-getCell = do
-  ptr <- use cursor
-  mem <- use memory
-  pure $ mem ^?! ix ptr
+
 
 increment :: BFState ()
-increment = getCell >>= modifyCell . succ
+increment = cell += 1
 
 decrement :: BFState ()
-decrement = getCell >>= modifyCell . pred
+decrement = cell -= 1
 
-
-modifyCell :: Int -> BFState ()
-modifyCell n = do
-  ptr <- use cursor
-  memory %= writeCell ptr
- where
-  writeCell :: Int -> V.Vector Int -> V.Vector Int
-  writeCell ptr vector = VG.modify (\v -> write v ptr n) vector
 
 outputPtr :: BFState ()
-outputPtr = getCell >>= lift . putChar . chr
+outputPtr = use cell >>= lift . putChar . chr
 
 getInput :: BFState ()
-getInput = lift getChar >>= modifyCell . ord
+getInput = do
+  v <- ord <$> lift getChar
+  modify (cell .~ v)
 
 run :: String -> IO ()
 run s = evalStateT (execCommandList $ parse s) emptyTape
