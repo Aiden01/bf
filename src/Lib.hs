@@ -79,8 +79,8 @@ moveCursor Left'  = cursor -= 1
 
 getCell :: BFState Int
 getCell = do
-  ptr <- gets (view cursor)
-  mem <- gets (view memory)
+  ptr <- use cursor
+  mem <- use memory
   pure $ mem ^?! ix ptr
 
 increment :: BFState ()
@@ -92,7 +92,7 @@ decrement = getCell >>= modifyCell . pred
 
 modifyCell :: Int -> BFState ()
 modifyCell n = do
-  ptr <- gets (view cursor)
+  ptr <- use cursor
   memory %= writeCell ptr
  where
   writeCell :: Int -> V.Vector Int -> V.Vector Int
